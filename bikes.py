@@ -28,7 +28,7 @@ types = {
     'datetime': parse_tfl_timestamp,
 }
 
-class Station(object):
+class StatSnap(object):
     xml_elt_map = {
         'id': ('tfl_id', 'int'),
         'name': ('name', 'str'),
@@ -54,15 +54,15 @@ class Station(object):
     def from_xml_elt(elt, updated):
         assert elt.tag == 'station'
 
-        station = Station()
-        station.snapshot_date = updated
+        statsnap = StatSnap()
+        statsnap.snapshot_date = updated
 
         for child in elt:
-            key, type = Station.xml_elt_map[child.tag]
+            key, type = StatSnap.xml_elt_map[child.tag]
             fn = types[type]
-            setattr(station, key, fn(child.text))
+            setattr(statsnap, key, fn(child.text))
 
-        return station
+        return statsnap
 
     def __repr__(self):
         inner = ', '.join('%s=%r' % (k, getattr(self, k))
@@ -77,7 +77,7 @@ def parse_xml(filename):
     root = tree.getroot()
 
     updated = parse_tfl_timestamp(root.attrib['lastUpdate'])
-    return [ Station.from_xml_elt(child, updated) for child in root ]
+    return [ StatSnap.from_xml_elt(child, updated) for child in root ]
 
 def tables():
     tables = Struct()
@@ -116,7 +116,7 @@ def tables():
 
     return tables
 
-def insert_parsed_stations(conn, tables, stations):
+def insert_statsnaps(conn, tables, statsnaps):
     t_stations = tables.stations
     station_keys = t_stations.columns.keys()
     station_keys.remove('id')
@@ -133,7 +133,7 @@ def insert_parsed_stations(conn, tables, stations):
     existing_stations = get_existing_stations()
     needed_stations = []
 
-    for s in stations:
+    for s in statsnaps:
         stat = tuple(getattr(s, k) for k in station_keys)
         if stat not in existing_stations:
             needed_stations.append({ k: getattr(s, k) for k in station_keys })
@@ -143,7 +143,7 @@ def insert_parsed_stations(conn, tables, stations):
         existing_stations = get_existing_stations()
 
     snapshots = []
-    for s in stations:
+    for s in statsnaps:
         stat = tuple(getattr(s, k) for k in station_keys)
         snap = { k: getattr(s, k) for k in snapshot_keys }
         snap['station_id'] = existing_stations[stat]
