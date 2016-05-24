@@ -1,26 +1,28 @@
 #! /usr/bin/env python2.7
 
+import sys
 import argparse
 
 import bikes
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', '--verbose', action='store_true')
+    parser.add_argument('--import', metavar='FILE', dest='import_',
+                        help='Import this file into the database.')
 
     args = parser.parse_args()
 
-    filename = bikes.save_bikes()
-
-    engine = bikes.db_engine(echo=args.verbose)
-    if engine is None:
-        return
-
-    tables = bikes.tables()
-    tables.meta.create_all(engine)
-
-    statsnaps = bikes.parse_xml(filename)
-    bikes.insert_statsnaps(engine.connect(), tables, statsnaps)
+    if args.import_ is None:
+        filename = bikes.save_bikes()
+        bikes.import_xml(filename, args.verbose)
+    else:
+        success = bikes.import_xml(args.import_, args.verbose)
+        if not success:
+            print >>sys.stderr, \
+                "Failed to import. Have you set up config.db_uri?"
+            sys.exit(1)
 
 if __name__ == '__main__':
     main()

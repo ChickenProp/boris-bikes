@@ -58,6 +58,18 @@ def save_bikes():
 
     return outpath
 
+def import_xml(filename, verbose):
+    engine = db_engine(echo=verbose)
+    if engine is None:
+        return False
+
+    tables_ = tables()
+    tables_.meta.create_all(engine)
+
+    statsnaps = parse_xml(filename)
+    insert_statsnaps(engine.connect(), tables_, statsnaps)
+    return True
+
 def parse_tfl_timestamp(ts):
     if ts:
         return datetime.datetime.fromtimestamp(int(ts)/1000)
