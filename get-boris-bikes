@@ -1,44 +1,26 @@
 #! /usr/bin/env python2.7
 
-import os
-import datetime
-import time
+import argparse
 
-import distutils.dir_util
-import requests
-import gzip
-
-import config
+import bikes
 
 def main():
-    now = datetime.datetime.utcnow()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-v', '--verbose', action='store_true')
 
-    num_tries = 0
-    exc = Exception('Could not get bike data for unknown reason')
-    while num_tries < config.num_request_tries:
-        num_tries += 1
-        try:
-            req = requests.get(config.url)
-            if req.status_code == requests.codes.ok:
-                break
-            else:
-                exc = Exception('URL returned code %d' % (req.status_code,))
-        except Exception as e:
-            exc = e
+    args = parser.parse_args()
 
-        if num_tries >= config.num_request_tries:
-            raise exc
+    filename = bikes.save_bikes()
 
-        time.sleep(1)
+    engine = bikes.db_engine(echo=args.verbose)
+    if engine is None:
+        return
 
-    csv = req.text
+    tables = bikes.tables()
+    tables.meta.create_all(engine)
 
-    outpath = os.path.join(config.datadir, now.strftime(config.filename))
-    outdir = os.path.dirname(outpath)
-    distutils.dir_util.mkpath(outdir)
-
-    with gzip.open(outpath, 'w') as f:
-        f.write(csv)
+    statsnaps = bikes.parse_xml(filename)
+    bikes.insert_statsnaps(engine.connect(), tables, statsnaps)
 
 if __name__ == '__main__':
     main()

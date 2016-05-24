@@ -1,17 +1,62 @@
 from __future__ import division
 
+import os
+import time
 import datetime
 from decimal import Decimal
 import gzip
 import xml.etree.ElementTree as ET
 
 import sqlalchemy as S
+import distutils.dir_util
+import requests
+
+import config
 
 # Currently we encode floats as strings, because in testing there were
 # round-trip errors encoding them to/from the db (sqlite).
 
 class Struct(object):
     pass
+
+def db_engine(echo=False):
+    if config.db_uri is None:
+        return None
+    return S.create_engine(config.db_uri, echo=echo)
+
+def fetch_bikes():
+    num_tries = 0
+    exc = Exception('Could not get bike data for unknown reason')
+    while num_tries < config.num_request_tries:
+        num_tries += 1
+        try:
+            req = requests.get(config.url)
+            if req.status_code == requests.codes.ok:
+                break
+            else:
+                exc = Exception('URL returned code %d' % (req.status_code,))
+        except Exception as e:
+            exc = e
+
+        if num_tries >= config.num_request_tries:
+            raise exc
+
+        time.sleep(1)
+
+    return req.text
+
+def save_bikes():
+    now = datetime.datetime.utcnow()
+    bikes = fetch_bikes()
+
+    outpath = os.path.join(config.datadir, now.strftime(config.filename))
+    outdir = os.path.dirname(outpath)
+    distutils.dir_util.mkpath(outdir)
+
+    with gzip.open(outpath, 'w') as f:
+        f.write(bikes)
+
+    return outpath
 
 def parse_tfl_timestamp(ts):
     if ts:
@@ -150,3 +195,21 @@ def insert_statsnaps(conn, tables, statsnaps):
         snapshots.append(snap)
 
     conn.execute(t_snapshots.insert(), snapshots)
+
+def update_current_snapshots(conn, tables):
+    # SqlAlchemy doesn't support upserts, so to get this I'd need to implement
+    # it per-database. (Though realistically, delete-then-insert would probably
+    # be fine in this case.) Punting on that for now. I think for postgres, I'd
+    # need something like:
+
+    # INSERT INTO current_stations (snapshot_id, tfl_id, station_id)
+    # SELECT id, tfl_id, station_id
+    # FROM snapshots
+    #   RIGHT JOIN
+    #     (SELECT tfl_id, MAX(snapshot_date) AS snapshot_date
+    #      FROM snapshots GROUP BY tfl_id) latest_dates
+    #   USING (tfl_id, snapshot_date)
+    # ON CONFLICT (tfl_id) DO UPDATE
+    #   SET snapshot_id=VALUES(snapshot_id), station_id=VALUES(station_id)'''
+
+    raise NotImplementedError()
