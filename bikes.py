@@ -154,7 +154,7 @@ def tables():
         S.Column('locked', S.Boolean),
         S.Column('temporary', S.Boolean),
         S.Column('install_date', S.DateTime),
-        S.Column('removal_date', S.DateTime)
+        S.Column('removal_date', S.DateTime),
     )
     tables.snapshots = S.Table('snapshots', tables.meta,
         S.Column('id', S.Integer, primary_key=True),
@@ -163,7 +163,9 @@ def tables():
         S.Column('snapshot_date', S.DateTime),
         S.Column('num_bikes', S.Integer),
         S.Column('num_empty', S.Integer),
-        S.Column('num_docks', S.Integer)
+        S.Column('num_docks', S.Integer),
+
+        S.Index('tfl_date', 'tfl_id', 'snapshot_date', unique=True)
     )
     tables.current_stations = S.Table('current_stations', tables.meta,
         S.Column('tfl_id', S.Integer, primary_key=True, autoincrement=False),
