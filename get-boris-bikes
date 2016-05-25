@@ -3,6 +3,7 @@
 import sys
 import argparse
 
+import config
 import bikes
 
 def main():
@@ -14,6 +15,9 @@ def main():
                         help='Import these files into the database.')
 
     args = parser.parse_args()
+
+    if args.db is not None:
+        config.db_url = args.db
 
     if args.import_ is None:
         filename = bikes.save_bikes()
