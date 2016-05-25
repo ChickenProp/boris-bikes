@@ -59,15 +59,21 @@ def save_bikes():
     return outpath
 
 def import_xml(filename, verbose):
+    return import_xml_multi([filename], verbose)
+
+def import_xml_multi(filenames, verbose):
     engine = db_engine(echo=verbose)
     if engine is None:
         return False
 
     tables_ = tables()
     tables_.meta.create_all(engine)
+    conn = engine.connect()
 
-    statsnaps = parse_xml(filename)
-    insert_statsnaps(engine.connect(), tables_, statsnaps)
+    for filename in filenames:
+        statsnaps = parse_xml(filename)
+        insert_statsnaps(conn, tables_, statsnaps)
+
     return True
 
 def parse_tfl_timestamp(ts):

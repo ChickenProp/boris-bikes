@@ -5,12 +5,13 @@ import argparse
 
 import bikes
 
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', '--verbose', action='store_true')
-    parser.add_argument('--import', metavar='FILE', dest='import_',
-                        help='Import this file into the database.')
+    parser.add_argument('--db', metavar="URL",
+                        help="Use this database instead of the default one.")
+    parser.add_argument('--import', metavar='FILE', dest='import_', nargs='+',
+                        help='Import these files into the database.')
 
     args = parser.parse_args()
 
@@ -18,7 +19,7 @@ def main():
         filename = bikes.save_bikes()
         bikes.import_xml(filename, args.verbose)
     else:
-        success = bikes.import_xml(args.import_, args.verbose)
+        success = bikes.import_xml_multi(args.import_, args.verbose)
         if not success:
             print >>sys.stderr, \
                 "Failed to import. Have you set up config.db_uri?"
