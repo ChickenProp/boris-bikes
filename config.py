@@ -15,10 +15,10 @@ filename = '%Y-%m/%Y-%m-%d/%Y-%m-%d--%H:%M:%S.xml.gz'
 #: Max no. of times to attempt to download `url`.
 num_request_tries = 5
 
-#: URI for the database, in a format that SqlAlchemy understands. `None` to not
+#: URL for the database, in a format that SqlAlchemy understands. `None` to not
 #: write to a database. See:
 #: http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html#database-urls
-db_uri = None
+db_url = None
 
 try:
     from local_config import *

@@ -20,9 +20,9 @@ class Struct(object):
     pass
 
 def db_engine(echo=False):
-    if config.db_uri is None:
+    if config.db_url is None:
         return None
-    return S.create_engine(config.db_uri, echo=echo)
+    return S.create_engine(config.db_url, echo=echo)
 
 def fetch_bikes():
     num_tries = 0
