@@ -9,24 +9,23 @@ import bikes
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', '--verbose', action='store_true')
-    parser.add_argument('--db', metavar="URL",
+    parser.add_argument('--db', metavar="URL", default=config.db_url,
                         help="Use this database instead of the default one.")
     parser.add_argument('--import', metavar='FILE', dest='import_', nargs='+',
                         help='Import these files into the database.')
 
     args = parser.parse_args()
 
-    if args.db is not None:
-        config.db_url = args.db
+    app = bikes.BorisBikesApp()
 
     if args.import_ is None:
-        filename = bikes.save_bikes()
-        bikes.import_xml(filename, args.verbose)
+        filename = app.save_bikes()
+        if app.init_db(args.db, echo=args.verbose, require=False):
+            app.import_xml(filename)
     else:
-        success = bikes.import_xml_multi(args.import_, args.verbose)
+        app.init_db(args.db, echo=args.verbose)
+        success = app.import_xml_multi(args.import_)
         if not success:
-            print >>sys.stderr, \
-                "Failed to import. Have you set up config.db_uri?"
             sys.exit(1)
 
 if __name__ == '__main__':
