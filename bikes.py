@@ -1,5 +1,6 @@
 from __future__ import division
 
+import sys
 import os
 import time
 import datetime
@@ -70,11 +71,23 @@ def import_xml_multi(filenames, verbose):
     tables_.meta.create_all(engine)
     conn = engine.connect()
 
+    num_succeeded = 0
     for filename in filenames:
-        statsnaps = parse_xml(filename)
-        insert_statsnaps(conn, tables_, statsnaps)
+        try:
+            statsnaps = parse_xml(filename)
+            insert_statsnaps(conn, tables_, statsnaps)
+            num_succeeded += 1
+        except IOError as e:
+            print >>sys.stderr, "%s: %s: %s" \
+              % (filename, e.__class__.__name__, e.strerror)
+        except S.exc.IntegrityError as e:
+            print >>sys.stderr, "%s: %s: %s" \
+              % (filename, e.__class__.__name__, e.message)
+        except Exception as e:
+            print >>sys.stderr, "%s: %s: %s" \
+               % (filename, e.__class__.__name__, e)
 
-    return True
+    return num_succeeded
 
 def parse_tfl_timestamp(ts):
     if ts:
