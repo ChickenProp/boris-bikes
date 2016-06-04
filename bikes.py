@@ -7,6 +7,7 @@ import datetime
 from decimal import Decimal
 import gzip
 import xml.etree.ElementTree as ET
+import logging
 
 import sqlalchemy as S
 import distutils.dir_util
@@ -16,6 +17,8 @@ import config
 
 # Currently we encode floats as strings, because in testing there were
 # round-trip errors encoding them to/from the db (sqlite).
+
+logger = logging.getLogger(__name__)
 
 class Struct(object):
     pass
@@ -101,6 +104,7 @@ class BorisBikesApp(object):
             if require:
                 raise Exception('No database provided (check config.db_url)')
             else:
+                logger.info('No database provided')
                 return False
 
         self.db = S.create_engine(url, echo=echo)
@@ -138,6 +142,7 @@ class BorisBikesApp(object):
         with gzip.open(outpath, 'w') as f:
             f.write(bikes)
 
+        logger.info('%s: saved', outpath)
         return outpath
 
     def import_xml(self, filename):
@@ -153,15 +158,15 @@ class BorisBikesApp(object):
                 statsnaps = StatSnap.parse_xml(filename)
                 self.insert_statsnaps(conn, statsnaps)
                 num_succeeded += 1
+                logger.info('%s: imported', filename)
             except IOError as e:
-                print >>sys.stderr, "%s: %s: %s" \
-                % (filename, e.__class__.__name__, e.strerror)
+                logger.warn("%s: %s: %s",
+                            filename, e.__class__.__name__, e.strerror)
             except S.exc.IntegrityError as e:
-                print >>sys.stderr, "%s: %s: %s" \
-                % (filename, e.__class__.__name__, e.message)
+                logger.warn("%s: %s: %s",
+                            filename, e.__class__.__name__, e.message)
             except Exception as e:
-                print >>sys.stderr, "%s: %s: %s" \
-                % (filename, e.__class__.__name__, e)
+                logger.warn("%s: %s: %s", filename, e.__class__.__name__, e)
 
         return num_succeeded
 
